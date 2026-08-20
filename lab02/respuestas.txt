@@ -1,0 +1,15 @@
+=============================================
+PREGUNTAS DE REFLEXIÓN - UNIDAD 2 (POO)
+=============================================
+
+1. ¿Por qué declaramos los atributos como private y no como public?
+-------------------------------------------------------------------
+Declarar los atributos como 'private' es fundamental para aplicar el principio de Encapsulamiento. Esto evita que el estado interno del objeto sea modificado arbitrariamente o de forma indebida desde fuera de la clase. Al usar 'private', se protege la integridad de los datos y se obliga a interactuar con ellos mediante métodos controlados (getters/setters o constructores), donde se pueden aplicar validaciones y lógica de negocio.
+
+2. ¿Qué pasaría si quitaras el super() del constructor de Perro?
+----------------------------------------------------------------
+Si se elimina la llamada explícita a 'super(nombre, edad, peso)', el compilador de Java intentará invocar automáticamente un constructor por defecto sin parámetros de la clase padre ('super()'). Dado que la clase 'Animal' solo define un constructor con parámetros y no tiene un constructor vacío por defecto, el compilador generará un error de compilación indicando que no encuentra un constructor coincidente sin argumentos.
+
+3. ¿Qué ventaja tiene sobreescribir toString() en lugar de crear un método con otro nombre?
+------------------------------------------------------------------------------------------
+'toString()' es un método estándar heredado de la clase base 'Object'. La principal ventaja de sobreescribirlo (@Override) es la integración nativa y polimórfica con el ecosistema de Java: cuando pasamos un objeto directamente a 'System.out.println(objeto)', al concatenarlo con cadenas (String concatenation: "" + objeto), o en herramientas de depuración/logging, Java invoca automáticamente 'toString()' sin necesidad de llamar a un método personalizado con un nombre arbitrario (como 'mostrarDetalles()' o 'imprimirDatos()').
