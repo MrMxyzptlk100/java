@@ -1,0 +1,41 @@
+=============================================
+PREGUNTAS DE REFLEXIÓN - UNIDAD 5 (POLIMORFISMO)
+=============================================
+
+1. ¿Cuál es la diferencia entre sobreescritura (@Override) y sobrecarga (overload)? Da un ejemplo de cada uno tomado de este laboratorio.
+-----------------------------------------------------------------------------------------------------------------------------------------
+La diferencia fundamental radica en el momento de resolución (ligadura o binding), la relación de herencia y la firma de los métodos:
+
+- Sobreescritura (@Override / Polimorfismo Dinámico):
+  Ocurre cuando una subclase redefine un método heredado de su clase base con exactamente el mismo nombre, los mismos tipos y cantidad de parámetros (misma firma) y un tipo de retorno compatible (covariante). Se resuelve en TIEMPO DE EJECUCIÓN (despacho dinámico o late binding) según el tipo real de la instancia en memoria (heap).
+  * Ejemplo del laboratorio: El método 'calcularDanio()'. Está declarado en la clase base 'Personaje' retornando 'getNivel() * 10', pero es sobreescrito en 'Guerrero' ('fuerza * getNivel()'), 'Mago' ('mana * getNivel()') y 'Arquero' ('precision * flechasDisponibles'). Cada subclase provee su propio comportamiento en tiempo de ejecución.
+
+- Sobrecarga (Overload / Polimorfismo Estático):
+  Ocurre dentro de una misma clase (o a través de la jerarquía) cuando existen dos o más métodos con el MISMO NOMBRE pero DIFERENTE FIRMA (distinta cantidad, tipo o secuencia de argumentos). Se resuelve en TIEMPO DE COMPILACIÓN (early binding) basándose exclusivamente en los argumentos pasados en la llamada. No requiere herencia.
+  * Ejemplo del laboratorio: En la clase 'GestorBatalla', el método 'ejecutarAtaque' está sobrecargado en tres versiones:
+    a) ejecutarAtaque(Personaje atacante)
+    b) ejecutarAtaque(Personaje atacante, Personaje defensor)
+    c) ejecutarAtaque(Personaje[] equipo)
+    (Otro ejemplo es el método 'entrenar()' en 'Guerrero' con firmas: sin argumentos, con un entero 'sesiones', y con 'int sesiones, boolean intensivo').
+
+2. Si tienes Personaje p = new Mago(...) y llamas p.calcularDanio(), ¿Java usa el método de Personaje o el de Mago? ¿Por qué?
+-------------------------------------------------------------------------------------------------------------------------------
+Java ejecuta el método de la clase 'Mago'.
+
+- Justificación:
+  En Java, todas las llamadas a métodos de instancia no estáticos y no privados utilizan el mecanismo de "Despacho Dinámico de Métodos" (Dynamic Method Dispatch o Virtual Method Invocation).
+  Aunque el tipo de referencia estática (en tiempo de compilación) de la variable 'p' es 'Personaje' —lo que le indica al compilador qué métodos es legal invocar—, en tiempo de ejecución la Máquina Virtual de Java (JVM) inspecciona el objeto real instanciado en el heap ('new Mago(...)') y consulta su tabla de métodos virtuales (vtable). Como la clase 'Mago' sobreescribe (@Override) el método 'calcularDanio()', la JVM enlaza la llamada directamente a la implementación especializada de 'Mago' (retornando 'mana * nivel' = 1200 en vez del cálculo genérico de 'Personaje' = 80).
+
+3. ¿Para qué sirve instanceof? ¿En qué situaciones lo usarías en un sistema real?
+----------------------------------------------------------------------------------
+- Para qué sirve:
+  'instanceof' es un operador binario de Java que evalúa en tiempo de ejecución si un objeto referenciado pertenece a un tipo determinado (ya sea una clase específica, una subclase de esta o una interfaz que implementa). Retorna 'true' si el objeto es compatible con dicho tipo y 'false' en caso contrario (o si la referencia apunta a 'null').
+
+- Situaciones en que se usaría en un sistema real:
+  1. Downcasting Seguro (Casteo hacia abajo):
+     Cuando se trabaja con colecciones o referencias polimórficas generales y se necesita acceder a métodos o atributos exclusivos de una subclase específica, 'instanceof' evita lanzar una excepción 'ClassCastException'.
+     Ejemplo: En el procesamiento de inventarios o combate, verificar 'if (p instanceof Guerrero)' antes de llamar a '((Guerrero) p).entrenar()'.
+  2. Implementación robusta de equals():
+     En el contrato canónico de 'equals(Object obj)' de cualquier entidad en Java, se utiliza 'instanceof' para validar que el objeto recibido como argumento sea de la clase esperada antes de comparar sus campos.
+  3. Despacho de Eventos / Pipelines de Mensajería:
+     En arquitecturas dirigidas por eventos donde un manejador genérico procesa interfaces comunes (como 'Evento' o 'MetodoPago'), se usa 'instanceof' para aplicar lógica de negocio diferencial (por ejemplo, si el pago es 'TarjetaCredito' procesar token bancario, si es 'Criptomoneda' verificar confirmaciones en la blockchain).
