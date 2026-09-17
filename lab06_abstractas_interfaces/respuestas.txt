@@ -1,0 +1,19 @@
+# Preguntas de reflexión — Laboratorio 06
+
+1. ¿Por qué Personaje debe ser abstracta y no concreta? ¿Qué problema resuelve?
+Respuesta:
+`Personaje` debe ser abstracta porque en el dominio del juego no tiene sentido que exista una entidad "Personaje genérica" sin una clase o rol específico (como Guerrero, Druida, Nigromante, etc.). 
+Problema que resuelve:
+- Evita la instanciación directa (`new Personaje(...)`), previniendo estados inconsistentes o comportamientos indefinidos como un `atacar()` o `calcularDanio()` sin lógica real aplicable.
+- Establece un contrato estricto mediante métodos abstractos que obliga a todas las subclases a definir su propio comportamiento de ataque y daño, mientras reutiliza atributos y métodos concretos comunes (`nombre`, `puntosVida`, `recibirDanio()`, `toString()`).
+
+2. ¿Qué ventaja tiene que Druida implemente dos interfaces? ¿Podría extender dos clases en lugar de implementar dos interfaces?
+Respuesta:
+- Ventaja: Permite que el `Druida` adquiera múltiples capacidades o roles (`Hechicero` para lanzar hechizos y `Sanador` para curar aliados) sin restringir su herencia biológica/estructural. Esto promueve una alta cohesión, bajo acoplamiento y permite tratarlo polimórficamente como `Personaje`, como `Hechicero` o como `Sanador`.
+- Herencia múltiple en Java: En Java NO existe la herencia múltiple de clases (una clase no puede hacer `extends ClaseA, ClaseB`). Por lo tanto, no podría extender dos clases base a la vez. El uso de interfaces es el mecanismo oficial de Java para permitir que una clase cumpla con múltiples contratos de comportamiento.
+
+3. Si agregas un nuevo personaje Paladín que cura y combate físicamente, ¿qué clase extiende y qué interfaces implementa? ¿Tienes que modificar algo en las clases existentes?
+Respuesta:
+- Clase que extiende: `Personaje` (para heredar atributos como `nombre`, `nivel`, `puntosVida` y métodos como `recibirDanio()`).
+- Interfaces que implementa: `Sanador` (ya que tiene la capacidad de curar aliados, pero no necesariamente `Hechicero` a menos que use maná/hechizos directos del sistema de hechicería).
+- Modificaciones en clases existentes: NO se debe modificar ninguna clase existente. Esto respeta el Principio de Abierto/Cerrado (Open/Closed Principle de SOLID), ya que el sistema está abierto a la extensión (nuevas clases) pero cerrado a la modificación de las clases base e interfaces ya establecidas.
