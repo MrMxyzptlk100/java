@@ -1,0 +1,26 @@
+# Preguntas de reflexión — Laboratorio 08: Colecciones en Java
+
+1. ¿Cuál es la diferencia entre ArrayList y LinkedList? Describe un escenario concreto del juego donde preferirías cada uno.
+Respuesta:
+- Diferencias estructurales y de rendimiento:
+  * ArrayList: Utiliza un arreglo dinámico en posiciones contiguas de memoria. Proporciona acceso aleatorio por índice en tiempo constante O(1) con get(i), pero las inserciones o eliminaciones al principio o en medio requieren desplazar elementos, tomando O(n).
+  * LinkedList: Utiliza una lista doblemente enlazada de nodos con referencias al anterior y siguiente. El acceso por índice es secuencial O(n), pero las inserciones y extracciones en los extremos (al inicio o al final) toman tiempo constante O(1) con addFirst(), addLast(), removeFirst() y removeLast().
+- Escenarios concretos en el juego:
+  * Preferiría ArrayList para el "roster" de miembros activos o la lista de personajes del equipo: se necesita consultar frecuentemente a los integrantes por su posición o índice (ej. slot 1, slot 2) y mostrar listas tabuladas mediante acceso directo rápido.
+  * Preferiría LinkedList para la "cola de turnos" de combate o la cola de espera de aventureros: sigue una estructura FIFO (First In, First Out) donde continuamente se encolan participantes al final (addLast) y se extrae el siguiente combatiente del frente (removeFirst), sin necesidad de reasignar ni mover bloques de memoria.
+
+2. ¿Por qué HashMap no garantiza un orden de inserción al imprimir con entrySet()? ¿Qué colección usarías si el orden importa?
+Respuesta:
+- Razón: HashMap organiza internamente las parejas clave-valor en una tabla hash ("buckets") calculando el código hash (hashCode()) de cada clave y aplicando una función de compresión modular sobre la capacidad de la tabla. Por tanto, la posición en la que queda almacenada una clave depende exclusivamente de su valor hash y no del momento cronológico en el que fue agregada ni del orden alfabético/numérico de las claves.
+- Colección a usar si el orden importa:
+  * Si se desea preservar el orden de inserción original: se debe utilizar LinkedHashMap (que combina la tabla hash con una lista doblemente enlazada).
+  * Si se desea mantener las claves ordenadas alfabéticamente o por orden natural: se debe utilizar TreeMap (que implementa NavigableMap/SortedMap mediante un árbol rojo-negro).
+
+3. ¿Qué ventaja tiene HashSet sobre ArrayList para registrar habilidades únicas? ¿Qué pierdes al usar HashSet?
+Respuesta:
+- Ventaja de HashSet:
+  * Garantía de unicidad y rendimiento óptimo en O(1): HashSet no permite elementos repetidos por diseño. Al invocar add() o contains(), verifica la presencia del elemento en tiempo constante promedio O(1) gracias al hashing. Con un ArrayList, para evitar duplicados se requiere verificar manualmente con contains(), lo cual realiza una búsqueda lineal O(n); para colecciones grandes, esto degrada severamente el rendimiento.
+- Qué se pierde al usar HashSet:
+  * Acceso posicional por índice: no se puede consultar un elemento mediante get(i).
+  * Orden predecible: los elementos no conservan el orden en el que fueron insertados (para eso se requeriría LinkedHashSet) ni un orden natural alfabético (para lo cual se usaría TreeSet).
+  * Capacidad de almacenar duplicados intencionales (por ejemplo, si quisiéramos acumular instancias repetidas de una misma habilidad o efecto).
