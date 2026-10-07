@@ -1,0 +1,73 @@
+# Preguntas de reflexión — Laboratorio 09: Entrada/Salida (I/O) en Java
+
+1. ¿Cuál es la diferencia entre FileWriter(archivo) y FileWriter(archivo, true)? ¿Qué pasaría con la bitácora si usaras el primero?
+Respuesta:
+- Diferencia:
+  * FileWriter(archivo): Abre el archivo en modo sobrescritura (truncate/overwrite). Si el archivo ya existe en disco, su contenido previo se elimina por completo y el cursor de escritura se posiciona al inicio (byte 0).
+  * FileWriter(archivo, true): El segundo parámetro booleano (`append = true`) activa el modo de adición. Si el archivo ya existe, conserva su contenido previo intacto y posiciona el cursor al final del archivo, añadiendo los nuevos caracteres inmediatamente después. Si el archivo no existe, ambos constructores lo crean automáticamente.
+- Consecuencia en la bitácora si se usara FileWriter(archivo):
+  * Cada vez que se invocara el método `agregarEntradaBitacora()`, el archivo `bitacora.txt` se vaciaría y sobrescribiría con la nueva línea. Como resultado, la bitácora únicamente contendría el último evento ocurrido, perdiéndose todo el historial cronológico acumulado de batallas.
+
+---
+
+2. ¿Por qué es importante verificar si un archivo existe antes de leerlo? ¿Qué excepción lanzaría Java si intentas leer un archivo que no existe sin verificar?
+Respuesta:
+- Importancia:
+  * Permite que la aplicación controle y gestione de manera limpia la ausencia del archivo (por ejemplo, retornando una lista o mapa vacío, creando un estado inicial por defecto o informando al usuario que se trata de la primera ejecución), evitando la terminación abrupta del programa o la necesidad de atrapar excepciones costosas para flujos normales de inicio.
+- Excepción lanzada:
+  * Si se intenta instanciar `new FileReader(archivo)` o `new FileInputStream(archivo)` sobre un archivo inexistente, Java lanza `java.io.FileNotFoundException`, la cual es una subclase chequeada (`checked exception`) de `java.io.IOException`.
+
+---
+
+3. ¿Qué ventaja tiene BufferedReader sobre leer el archivo directamente con FileReader? ¿Qué hace el "buffer" en este contexto?
+Respuesta:
+- Ventaja en rendimiento:
+  * `FileReader` realiza llamadas de lectura directamente sobre el disco carácter por carácter. Cada operación de acceso a disco implica interrupciones y llamadas al sistema operativo (I/O syscalls), lo cual es computacionalmente lento y costoso.
+  * `BufferedReader` envuelve el `FileReader` y carga en memoria RAM un bloque grande de caracteres (por defecto 8192 caracteres / 8 KB) en una sola operación de disco. Las lecturas subsecuentes se realizan instantáneamente desde la memoria RAM.
+- Ventaja en funcionalidad:
+  * Ofrece el método de alto nivel `readLine()`, que lee líneas completas de texto delimitadas por saltos de línea (`\n`, `\r`, `\r\n`) retornando un `String`, lo cual simplifica enormemente el procesamiento de texto estructurado.
+- ¿Qué hace el "buffer"?:
+  * Es una región temporal de memoria RAM intermedia que actúa como depósito. Minimiza los viajes físicos al disco o almacenamiento secundario leyendo/escribiendo por lotes (batches) en lugar de carácter a carácter.
+
+---
+
+4. Definir Enums en Java, para qué sirven, e investigar y listar clases similares a BufferedReader/BufferedWriter y FileReader/FileWriter.
+Respuesta:
+
+A) Definición y utilidad de Enums en Java:
+- ¿Qué es un enum?:
+  * Un `enum` (enumeración) es un tipo de dato especial introducido en Java 5 que extiende implícitamente `java.lang.Enum`. Define un conjunto fijo y cerrado de constantes fuertemente tipadas (`type-safe`).
+  * En Java, a diferencia de otros lenguajes como C/C++, los enums son clases completas: pueden tener atributos privados, constructores privados o de paquete, métodos propios, métodos abstractos sobreescritos por constantes e implementar interfaces.
+- ¿Para qué sirven?:
+  * Representan conjuntos fijos de valores del dominio del negocio (ej. roles de juego: `GUERRERO`, `MAGO`, `ARQUERO`; estados: `VIVO`, `DERROTADO`, `EN_ESPERA`; tipos de elementos o rareza de objetos: `COMUN`, `RARO`, `EPICO`).
+  * Eliminan el uso propenso a errores de enteros o cadenas mágicas (`magic strings`), garantizando validación estricta en tiempo de compilación.
+  * Facilitan estructuras de control con `switch` y permiten usar colecciones de alto rendimiento optimizadas a nivel de bits como `EnumSet` y `EnumMap`.
+
+B) Clases similares en la jerarquía de I/O de Java:
+1. Flujos orientados a caracteres (Texto - Reader / Writer):
+   - Similares a FileReader:
+     * `StringReader`: Lee caracteres directamente desde un `String` en memoria RAM.
+     * `CharArrayReader`: Lee caracteres a partir de un arreglo `char[]`.
+     * `InputStreamReader`: Actúa como puente decodificador (byte stream a character stream) convirtiendo bytes a caracteres con un `Charset` específico (ej. UTF-8).
+   - Similares a FileWriter:
+     * `StringWriter`: Escribe caracteres acumulándolos en un buffer interno de `StringBuffer`.
+     * `CharArrayWriter`: Escribe caracteres en un buffer interno de arreglo de caracteres.
+     * `OutputStreamWriter`: Puente codificador que traduce caracteres a bytes según una codificación.
+     * `PrintWriter`: Envoltorio de alto nivel con métodos de impresión formateada (`print`, `println`, `printf`) que no lanzan `IOException`.
+   - Similares a BufferedReader / BufferedWriter:
+     * `LineNumberReader`: Subclase de `BufferedReader` que mantiene automáticamente el conteo del número de línea actual (`getLineNumber()`).
+
+2. Flujos orientados a bytes (Binarios - InputStream / OutputStream):
+   - Similares a FileReader / FileWriter:
+     * `FileInputStream` y `FileOutputStream`: Leen y escriben bytes directamente desde/hacia archivos binarios.
+     * `ByteArrayInputStream` y `ByteArrayOutputStream`: Leen y escriben bytes desde/hacia arreglos `byte[]` en memoria.
+   - Similares a BufferedReader / BufferedWriter:
+     * `BufferedInputStream` y `BufferedOutputStream`: Proporcionan un buffer en memoria RAM para flujos de bytes binarios.
+   - Flujos binarios procesados:
+     * `DataInputStream` y `DataOutputStream`: Permiten leer y escribir tipos de datos primitivos de Java (`readInt()`, `writeDouble()`, `readUTF()`) de manera portable.
+     * `ObjectInputStream` y `ObjectOutputStream`: Permiten serializar y deserializar objetos completos de Java que implementen `Serializable`.
+
+3. Nueva API Java NIO.2 (`java.nio.file`):
+   - `java.nio.file.Files.newBufferedReader(Path)`: Crea un `BufferedReader` optimizado especificando charset (por defecto UTF-8).
+   - `java.nio.file.Files.newBufferedWriter(Path)`: Crea un `BufferedWriter` con opciones avanzadas (`StandardOpenOption.CREATE`, `StandardOpenOption.APPEND`).
+   - `java.nio.file.Files.readAllLines(Path)` y `java.nio.file.Files.write(Path, Iterable)`: Métodos de utilidad directa para operaciones en archivos pequeños en una sola línea de código.
