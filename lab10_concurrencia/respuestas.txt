@@ -1,0 +1,42 @@
+# Preguntas de reflexión — Laboratorio 10: Programación Concurrente en Java
+
+1. ¿Cuál es la diferencia entre extends Thread e implements Runnable? ¿Cuándo preferirías uno sobre el otro?
+Respuesta:
+- Diferencias conceptuales y de diseño:
+  * extends Thread: La clase hereda directamente de java.lang.Thread, convirtiéndose ella misma en un hilo de ejecución. Dado que Java no admite herencia múltiple de clases, al extender de Thread la clase queda incapacitada para extender cualquier otra clase de dominio (por ejemplo, si quisiéramos que fuera a la vez Personaje o Entidad). Además, acopla fuertemente la unidad de trabajo con el mecanismo de ejecución del sistema operativo.
+  * implements Runnable: La clase implementa la interfaz funcional Runnable, la cual únicamente define el contrato del método run(). Esto aplica el principio de responsabilidad única (SRP), separando limpiamente la tarea o lógica de negocio (el "qué" hacer) del mecanismo del hilo encargado de ejecutarla (el "cómo").
+- ¿Cuándo preferir uno sobre el otro?:
+  * Preferir implements Runnable (recomendado en la gran mayoría de casos y en entornos profesionales):
+    1. Cuando la clase ya necesita heredar de otra clase base (como en nuestro torneo RPG, donde los personajes heredan de Personaje).
+    2. Cuando se desea reutilizar la lógica de ejecución en pools de hilos (ExecutorService, ThreadPoolExecutor), lo que optimiza memoria y evita la sobrecarga de crear hilos pesados del sistema operativo.
+    3. Cuando se desea aprovechar expresiones lambda y funciones anónimas para tareas concisas.
+  * Preferir extends Thread:
+    1. Únicamente en escenarios especializados donde se necesite sobreescribir o ampliar el comportamiento interno de la propia infraestructura del hilo (por ejemplo, redefinir métodos como interrupt(), manejar estados internos del ciclo de vida del hilo, o implementar hilos con comportamiento de monitoreo dedicado como MonitorTorneo).
+
+2. ¿Qué es una race condition? Explica con el ejemplo del ContadorCompartido por qué el resultado sin synchronized puede ser menor a 5000.
+Respuesta:
+- Definición de Race Condition (Condición de carrera):
+  * Ocurre cuando dos o más hilos acceden y modifican un estado o recurso compartido en memoria al mismo tiempo, y el resultado final depende del orden impredecible de planificación (intercalación de instrucciones) en los núcleos del procesador.
+- Explicación con ContadorCompartido:
+  * A nivel de código Java, la instrucción `contador++` parece una sola acción, pero en bytecode y a nivel de CPU se descompone en tres pasos no atómicos:
+    1. Lectura (READ): Cargar el valor actual de la variable `contador` desde la memoria principal hacia la memoria caché o registro del hilo.
+    2. Modificación (MODIFY): Sumar 1 al valor cargado en el registro.
+    3. Escritura (WRITE): Almacenar el nuevo valor desde el registro de vuelta a la memoria principal.
+  * Si dos hilos (por ejemplo Hilo A e Hilo B) ejecutan `contador++` concurrentemente:
+    - Ambos leen el valor actual cuando este vale 100.
+    - Ambos incrementan su copia local a 101.
+    - El Hilo A escribe 101 en memoria.
+    - El Hilo B escribe 101 en memoria, sobreescribiendo el trabajo de A.
+  * Aunque se ejecutaron dos incrementos, el contador solo aumentó en 1 (se produjo una "actualización perdida" o lost update). Al haber 5 hilos ejecutando 1000 iteraciones cada uno de forma simultánea sin sincronización, estas interferencias suceden constantemente, haciendo que el resultado final sea casi siempre menor a 5000.
+  * Al usar `synchronized` (en `incrementarSeguro()`), se adquiere un bloqueo intrínseco (monitor lock) sobre la instancia: solo un hilo a la vez puede ingresar a la sección crítica, forzando a que las operaciones de lectura, incremento y escritura ocurran de manera atómica e indivisible para los demás hilos, garantizando siempre el total exacto de 5000.
+
+3. ¿Para qué sirve join()? ¿Qué pasaría si quitaras los join() del bloque 3 antes de llamar tabla.mostrarResultados()?
+Respuesta:
+- Para qué sirve join():
+  * El método `join()` de la clase Thread suspende temporalmente la ejecución del hilo llamador (en este caso, el hilo principal `main`), pasándolo al estado WAITING hasta que el hilo sobre el que se invoca (h1, h2, h3 o monitor) termine completamente su ejecución (alcance el estado TERMINATED).
+  * Sirve como un mecanismo fundamental de sincronización y barrera de finalización para coordinar tareas concurrentes antes de proceder con pasos subsecuentes que dependen de los resultados de dichos hilos.
+- ¿Qué pasaría si se quitaran los join() del bloque 3?:
+  * El hilo `main` continuaría inmediatamente su flujo secuencial sin esperar a que los combates en segundo plano concluyan. Como consecuencia:
+    1. Se imprimiría de inmediato el mensaje `"Todos los combates han terminado."`, lo cual sería falso, ya que los combates estarían apenas iniciando o en sus primeras rondas (debido al Thread.sleep(500)).
+    2. Al llamar a `tabla.mostrarResultados()`, la tabla aparecería vacía (`Total de combates: 0`) o con resultados incompletos, ya que ningún combate habría tenido tiempo de invocar `tabla.registrar(...)`.
+    3. La ejecución del Bloque 4 (demostración de la condición de carrera con ContadorCompartido) comenzaría a correr en paralelo con los combates y el monitor, mezclando desordenadamente la salida en consola y rompiendo la lógica cronológica del programa.
