@@ -1,0 +1,25 @@
+=============================================
+PREGUNTAS DE REFLEXIÓN - UNIDAD 11 (HOLA MUNDO CON SPRING BOOT)
+=============================================
+
+1. ¿Cuál es la diferencia entre una aplicación de consola (Labs 01–10) y una aplicación web? ¿Qué ventajas tiene la web?
+-----------------------------------------------------------------------------------------------------------------------
+Una aplicación de consola se ejecuta localmente desde la terminal: arranca, imprime texto, y termina. Solo la puede usar quien tenga Java instalado y el código en su máquina, y la interacción se limita a texto plano.
+Una aplicación web, en cambio, es un servidor que se queda escuchando peticiones HTTP (en este laboratorio, Tomcat embebido en el puerto 8080). El usuario accede desde un navegador, envía una petición (GET /saludo) y el servidor responde con HTML.
+Ventajas de la web:
+- Acceso desde cualquier dispositivo con navegador, sin instalar Java ni la aplicación.
+- Muchos usuarios pueden usarla al mismo tiempo desde distintos lugares.
+- Las actualizaciones se hacen una sola vez en el servidor y todos los usuarios las reciben de inmediato.
+- Interfaces más ricas (HTML, CSS, colores, formularios) en lugar de solo texto en la terminal.
+
+2. Explica con tus palabras qué hace cada capa del MVC en este laboratorio. ¿Qué pasaría si el Controller devolviera el nombre incorrecto de la plantilla?
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+- Model: son los datos. En /saludo son el mensaje, el nombre del gremio y el nivel; en /aventurero es el objeto Aventurero (Sylva, Druida, nivel 10). Se agregan con model.addAttribute(...).
+- View: es la plantilla HTML (saludo.html y aventurero.html). Define cómo se ve la página y, con th:text, indica dónde se insertan los datos del Model.
+- Controller: SaludoController recibe la petición HTTP (@GetMapping), prepara los datos, los coloca en el Model y devuelve el nombre de la plantilla que debe mostrarse.
+Si el Controller devolviera un nombre incorrecto (por ejemplo "saludos" en lugar de "saludo"), Thymeleaf buscaría templates/saludos.html, no lo encontraría y lanzaría una excepción (TemplateInputException: "Error resolving template"). El navegador mostraría una página de error 500 (Whitelabel Error Page) en lugar del saludo. La aplicación sí compila y arranca, porque el error solo aparece en tiempo de ejecución cuando se visita la URL.
+
+3. ¿Por qué crees que Thymeleaf puede mostrar el HTML sin el servidor activo? ¿Qué ventaja tiene eso para el desarrollo?
+------------------------------------------------------------------------------------------------------------------------
+Porque las plantillas de Thymeleaf son HTML válido: las instrucciones de Thymeleaf van dentro de atributos (th:text, th:each) que el navegador no conoce y simplemente ignora. Así, al abrir el archivo directamente, el navegador muestra el texto de ejemplo escrito entre las etiquetas ("Mensaje aquí", "Nombre del gremio"). Cuando la página pasa por el servidor, Thymeleaf procesa esos atributos y reemplaza el texto de ejemplo con los datos reales del Model. A esto se le llama "plantillas naturales" (natural templates).
+Ventaja para el desarrollo: se puede diseñar y revisar la página (estructura, estilos, colores) abriéndola directamente en el navegador, sin compilar ni arrancar el servidor. Además, un diseñador puede trabajar el HTML/CSS sin saber Java ni Spring, y el programador después solo conecta los datos, sin romper el diseño.
