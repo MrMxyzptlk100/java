@@ -1,0 +1,23 @@
+=============================================
+PREGUNTAS DE REFLEXIÓN - UNIDAD 12 (AGENDA DE CONTACTOS CON SPRING BOOT Y BD)
+=============================================
+
+1. ¿Qué hace @Entity? ¿Por qué se requiere el constructor vacío?
+-----------------------------------------------------------------
+@Entity le indica a JPA (Hibernate) que la clase Contacto representa una tabla de la base de datos. Cada objeto Contacto es un renglón de la tabla "contacto" y cada atributo (nombre, apellido, email, telefono) es una columna. Junto con @Id y @GeneratedValue, Hibernate sabe cuál es la llave primaria y que debe generarse automáticamente. Gracias a ddl-auto, Hibernate crea la tabla al arrancar sin que escribamos un CREATE TABLE.
+El constructor vacío es obligatorio porque, cuando Hibernate lee un renglón de la BD (por ejemplo con findAll()), primero crea el objeto con new Contacto() usando reflexión y después llena cada atributo con los valores de las columnas. Hibernate no sabe qué argumentos pasarle a otros constructores, así que necesita uno sin parámetros. Spring MVC hace algo parecido con @ModelAttribute: crea un Contacto vacío y luego llama a los setters con los datos del formulario.
+
+2. ¿Por qué ContactoRepository no tiene ningún método escrito pero aun así puedes llamar findAll() y save()?
+-----------------------------------------------------------------------------------------------------------
+Porque ContactoRepository hereda de JpaRepository<Contacto, Long>, que ya declara save(), findAll(), findById(), deleteById(), count(), etc. Al arrancar la aplicación, Spring Data JPA detecta la interfaz y genera automáticamente una clase que la implementa (un proxy basado en SimpleJpaRepository). Ese objeto se registra como bean y Spring lo inyecta en el constructor de ContactoController. Los genéricos <Contacto, Long> le dicen con qué entidad trabajar y de qué tipo es su id, así que puede generar el SQL correcto (INSERT, SELECT, UPDATE, DELETE) sin que lo escribamos.
+
+3. ¿Qué diferencia hay entre @GetMapping y @PostMapping? ¿Cuándo usarías cada uno?
+---------------------------------------------------------------------------------
+@GetMapping atiende peticiones HTTP GET, que sirven para OBTENER o mostrar información. No deben modificar datos, los parámetros viajan en la URL y se pueden guardar como marcador o recargar sin problema. En este lab: /contactos (lista), /nuevo (formulario vacío) y /editar/{id} (formulario con datos).
+@PostMapping atiende peticiones HTTP POST, que sirven para ENVIAR datos que cambian el estado del servidor (crear, actualizar, borrar). Los datos viajan en el cuerpo de la petición, no en la URL. En este lab: /guardar (INSERT o UPDATE) y /eliminar/{id} (DELETE).
+Después de un POST se hace "redirect:/contactos" (patrón Post/Redirect/Get) para que, si el usuario recarga la página, no se vuelva a enviar el formulario y se dupliquen los datos.
+
+4. Módulos de delete y update
+-----------------------------
+- UPDATE: en la lista, el botón "Editar" lleva a GET /editar/{id}. El controller busca el contacto con findById(id) y reutiliza la plantilla nuevo.html con los datos ya cargados. El formulario incluye un campo oculto con el id; al enviarlo a POST /guardar, save() ve que el id existe y hace UPDATE en lugar de INSERT.
+- DELETE: en la lista, el botón "Eliminar" envía un formulario POST a /eliminar/{id} (con confirmación en el navegador). El controller llama a deleteById(id) y redirige a /contactos. Se usa POST y no un enlace GET porque borrar modifica datos.
