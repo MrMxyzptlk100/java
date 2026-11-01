@@ -1,0 +1,48 @@
+=============================================
+PREGUNTAS DE REFLEXIÓN - UNIDAD 13 (CRUD COMPLETO CON SPRING BOOT Y MYSQL)
+=============================================
+
+1. ¿Por qué agregamos la capa Service? ¿Qué problema resuelve tener el Controller hablando directo con el Repository?
+--------------------------------------------------------------------------------------------------------------------
+La capa Service es donde vive la lógica de negocio: validaciones, reglas ("no se puede repetir un email", "el teléfono debe tener 10 dígitos"), cálculos o coordinar varias operaciones. Así cada capa tiene una sola responsabilidad:
+- Controller: recibe la petición HTTP y decide qué vista mostrar.
+- Service: decide QUÉ se hace con los datos.
+- Repository: sabe CÓMO guardarlos y leerlos de la BD.
+Si el Controller habla directo con el Repository, la lógica de negocio termina mezclada con el código web. Eso provoca:
+- Código repetido: si dos rutas (o una API REST además de las páginas) necesitan la misma regla, hay que copiarla en cada método.
+- Difícil de mantener: cambiar una regla obliga a tocar el Controller, aunque la parte web no haya cambiado.
+- Difícil de probar: para probar una regla habría que simular peticiones HTTP; con un Service se prueba llamando directamente a sus métodos.
+- Acoplamiento a la BD: el Controller dependería de detalles de persistencia (por ejemplo, el Optional que regresa findById). En el Service, buscarPorId() ya regresa un Contacto o lanza una excepción clara.
+
+2. El formulario formulario.html sirve tanto para crear como para editar. ¿Cómo sabe Thymeleaf si mostrar "Nuevo Contacto" o "Editar Contacto"? ¿Qué papel juega el campo <input type="hidden" th:field="*{id}" />?
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Thymeleaf revisa el objeto "contacto" que el Controller puso en el Model:
+- En GET /nuevo el Controller manda new Contacto(), cuyo id es null.
+- En GET /editar/{id} manda el contacto que buscó en la BD, que sí tiene id.
+La expresión ${contacto.id} != null ? '✏️ Editar Contacto' : '📋 Nuevo Contacto' usa el operador ternario: si hay id muestra "Editar", si no "Nuevo". Con la misma condición, th:action envía el formulario a /actualizar o a /guardar. Además, th:field pre-llena cada input con el valor actual del objeto, por eso al editar los campos aparecen con los datos del contacto.
+El campo oculto <input type="hidden" th:field="*{id}" /> guarda el id dentro del formulario sin mostrárselo al usuario. HTTP no tiene memoria: cuando se envía el POST, el servidor no sabe qué contacto se estaba editando. Gracias al campo oculto, el id viaja junto con nombre, apellido, etc., @ModelAttribute lo coloca en el objeto Contacto y save() actualiza ese registro. Sin ese campo, el id llegaría vacío y JPA crearía un contacto nuevo (un duplicado) en lugar de modificar el existente.
+
+3. repo.save(contacto) hace INSERT cuando el contacto es nuevo y UPDATE cuando ya existe. ¿Cómo sabe JPA la diferencia?
+----------------------------------------------------------------------------------------------------------------------
+Se fija en el campo marcado con @Id. La implementación de save() (SimpleJpaRepository) pregunta si la entidad es nueva:
+- Si el id es null → la entidad es nueva → llama a persist() → Hibernate genera un INSERT y MySQL asigna el id (AUTO_INCREMENT, por @GeneratedValue(strategy = GenerationType.IDENTITY)).
+- Si el id tiene valor → la considera existente → llama a merge() → Hibernate hace un SELECT para cargar el registro con ese id y después un UPDATE con los valores nuevos.
+Con spring.jpa.show-sql=true se ve en la consola: al guardar un contacto nuevo aparece "insert into contacto ...", y al editar aparece "select ... from contacto where id=?" seguido de "update contacto set ... where id=?".
+
+La clase Service (ContactoService)
+----------------------------------
+- @Service la registra como un bean de Spring (igual que @Controller o @Repository, es una especialización de @Component). Spring crea una sola instancia y la inyecta donde se necesite.
+- Recibe el ContactoRepository por el constructor (inyección de dependencias): la clase no hace "new", Spring le entrega el repositorio ya listo.
+- Expone las 4 operaciones del CRUD con nombres del negocio en lugar de nombres de BD:
+    listarTodos()        → repo.findAll()       (Read de todos)
+    guardar(contacto)    → repo.save()          (Create y Update)
+    buscarPorId(id)      → repo.findById()      (Read de uno; si no existe lanza RuntimeException con un mensaje claro en lugar de regresar null)
+    eliminar(id)         → repo.deleteById()    (Delete)
+- El Controller solo conoce al Service; si mañana se agregan validaciones (por ejemplo, revisar que el email no exista antes de guardar), se escriben aquí sin tocar el Controller ni las vistas.
+
+@GetMapping y @PostMapping
+--------------------------
+- @GetMapping("/ruta") atiende peticiones HTTP GET. GET se usa para PEDIR o mostrar información; los parámetros van en la URL, se puede recargar o guardar como marcador. En este lab: /contactos (lista), /nuevo (formulario vacío) y /editar/{id} (formulario pre-llenado). Con @PathVariable se extrae una parte de la URL: /editar/5 → id = 5.
+- @PostMapping("/ruta") atiende peticiones HTTP POST. POST se usa para ENVIAR datos que modifican el servidor; los datos viajan en el cuerpo de la petición (no en la URL). En este lab: /guardar (INSERT) y /actualizar (UPDATE). Con @ModelAttribute Spring toma los campos del formulario (name="nombre", name="email"...) y llena un objeto Contacto llamando a sus setters.
+- Después de cada POST el Controller responde "redirect:/contactos" (patrón Post/Redirect/Get): el navegador hace un nuevo GET a la lista, y si el usuario recarga la página no se reenvía el formulario ni se duplican datos.
+- Nota: el lab usa GET para /eliminar/{id} por sencillez (es un enlace con confirm()). En una aplicación real, las operaciones que modifican datos deberían ser POST (o DELETE), porque un GET puede ejecutarse sin querer (un buscador o el navegador precargando enlaces podría borrar registros).
